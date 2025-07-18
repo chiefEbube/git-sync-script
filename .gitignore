@@ -1,0 +1,6 @@
+# System files
+.DS_Store
+
+# IDE / Editor folders
+.vscode/
+.idea/

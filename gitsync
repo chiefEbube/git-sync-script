@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# A script to commit current changes and then sync a feature branch with the 'develop' branch.
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+echo "🔎 Checking for local changes..."
+
+if ! git diff-index --quiet HEAD --; then
+    echo " cambios uncommitted detected. Let's save them first."
+    git add .
+
+    read -p "Enter a commit message for your current changes (e.g., 'WIP: Implementing feature X'): " commit_message
+
+    if [ -z "$commit_message" ]; then
+        commit_message="WIP: Auto-commit by sync script"
+    fi
+
+    git commit -m "$commit_message"
+    echo "✅ Your changes have been committed."
+else
+    echo "👍 No local changes to commit. Continuing..."
+fi
+
+
+current_branch=$(git symbolic-ref --short HEAD)
+feature_branch=${1:-$current_branch}
+
+if [ -n "$1" ] && [ "$1" != "$current_branch" ]; then
+    if git checkout "$1"; then
+        feature_branch=$1
+    else
+        echo "❌ Error: Could not checkout branch '$1'. It might not exist."
+        exit 1
+    fi
+fi
+
+echo "🚀 Starting sync for branch: $feature_branch"
+
+echo "🔄 Switching to 'develop' and pulling latest changes..."
+git checkout develop
+git pull
+
+echo "↩️ Returning to '$feature_branch'..."
+git checkout "$feature_branch"
+
+echo "🤝 Merging 'develop' into '$feature_branch'..."
+if ! git merge develop --no-edit; then
+    echo "⚠️ Merge conflict detected! Please resolve the conflicts manually."
+    echo "After resolving, run 'git add .' and 'git commit' to complete the merge."
+    exit 1
+fi
+
+echo "⬆️ Pushing changes to remote..."
+git push
+
+echo "✅ Sync complete! Your branch '$feature_branch' is now up-to-date with 'develop'."
