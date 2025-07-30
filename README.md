@@ -2,7 +2,7 @@
 
 An interactive CLI tool to safely and easily sync your Git branches. It provides a guided, step-by-step process to update your feature branch from a main development branch (like `main` or `develop`), automating the tedious `git checkout/pull/merge` workflow to prevent errors and save you time.
 
-![Demo of GitSync in Action](./screenrec.gif)
+![Demo of GitSync in Action](./screenrec.gif) 
 
 ## Key Features
 
