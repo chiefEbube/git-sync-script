@@ -1,58 +1,113 @@
 #!/bin/bash
 
-# A script to commit current changes and then sync a feature branch with the 'develop' branch.
+# GitSync v2.0: An interactive CLI tool for syncing Git branches.
+# --- Configuration ---
+VERSION="2.0.0"
 
-# Exit immediately if a command exits with a non-zero status.
-set -e
+cat << "EOF"
 
-echo "🔎 Checking for local changes..."
+ .d8888b.  d8b 888          .d8888b.                             
+d88P  Y88b Y8P 888         d88P  Y88b                            
+888    888     888         Y88b.                                 
+888        888 888888       "Y888b.   888  888 88888b.   .d8888b 
+888  88888 888 888             "Y88b. 888  888 888 "88b d88P"    
+888    888 888 888               "888 888  888 888  888 888      
+Y88b  d88P 888 Y88b.       Y88b  d88P Y88b 888 888  888 Y88b.    
+ "Y8888P88 888  "Y888       "Y8888P"   "Y88888 888  888  "Y8888P 
+                                           888                   
+                                      Y8b d88P                   
+                                       "Y88P"                    
 
-if ! git diff-index --quiet HEAD --; then
-    echo " cambios uncommitted detected. Let's save them first."
-    git add .
+EOF
 
-    read -p "Enter a commit message for your current changes (e.g., 'WIP: Implementing feature X'): " commit_message
+# --- Welcome Message ---
+echo "Welcome to GitSync v$VERSION"
+echo "-------------------------------------"
+echo
 
-    if [ -z "$commit_message" ]; then
-        commit_message="WIP: Auto-commit by sync script"
-    fi
 
-    git commit -m "$commit_message"
-    echo "✅ Your changes have been committed."
+# 1. Get the branch to sync (feature branch)
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ -n "$current_branch" ]; then
+    read -p "? Which branch do you want to sync? (current: $current_branch) " feature_branch
+    feature_branch=${feature_branch:-$current_branch} # Default to current if empty
 else
-    echo "👍 No local changes to commit. Continuing..."
-fi
-
-
-current_branch=$(git symbolic-ref --short HEAD)
-feature_branch=${1:-$current_branch}
-
-if [ -n "$1" ] && [ "$1" != "$current_branch" ]; then
-    if git checkout "$1"; then
-        feature_branch=$1
-    else
-        echo "❌ Error: Could not checkout branch '$1'. It might not exist."
+    read -p "? Which branch do you want to sync? " feature_branch
+    if [ -z "$feature_branch" ]; then
+        echo "❌ Error: Feature branch cannot be empty."
         exit 1
     fi
 fi
 
-echo "🚀 Starting sync for branch: $feature_branch"
+# 2. Get the branch to merge from (development branch)
+read -p "? What is your main branch to merge from? (default: develop) " develop_branch
+develop_branch=${develop_branch:-"develop"} # Default to 'develop' if empty
 
-echo "🔄 Switching to 'develop' and pulling latest changes..."
-git checkout develop
-git pull
+# 3. Confirmation step
+echo "-------------------------------------"
+echo "🚨 Please confirm the sync details:"
+echo "   - FROM: $develop_branch"
+echo "   - INTO: $feature_branch"
+echo
+read -p "? Are you sure you want to proceed? (y/n) " confirmation
 
-echo "↩️ Returning to '$feature_branch'..."
-git checkout "$feature_branch"
+if [[ "$confirmation" != "y" && "$confirmation" != "Y" ]]; then
+    echo "Sync cancelled by user. Exiting."
+    exit 0
+fi
+echo "-------------------------------------"
 
-echo "🤝 Merging 'develop' into '$feature_branch'..."
-if ! git merge develop --no-edit; then
-    echo "⚠️ Merge conflict detected! Please resolve the conflicts manually."
-    echo "After resolving, run 'git add .' and 'git commit' to complete the merge."
+# --- Core Logic ---
+
+# Step 1: Commit any pending changes on the feature branch
+echo "[1/6] Checking for local changes on '$feature_branch'..."
+
+# Checkout to feature branch if not already there
+if [ "$(git symbolic-ref --short HEAD)" != "$feature_branch" ]; then
+    if ! git checkout "$feature_branch"; then
+        echo "❌ Error: Could not checkout branch '$feature_branch'. It might not exist."
+        exit 1
+    fi
+fi
+
+if ! git diff-index --quiet HEAD --; then
+    echo "   > Uncommitted changes detected."
+    git add .
+    read -p "   > Enter a commit message for your current changes: " commit_message
+    if [ -z "$commit_message" ]; then
+        commit_message="WIP: Auto-commit by gitsync script"
+    fi
+    git commit -m "$commit_message"
+    echo "   > ✅ Changes committed."
+else
+    echo "   > 👍 No local changes to commit."
+fi
+
+# Step 2: Switch to the development branch
+echo "[2/6] Switching to '$develop_branch'..."
+if ! git checkout "$develop_branch"; then
+    echo "❌ Error: Could not checkout branch '$develop_branch'. It might not exist."
     exit 1
 fi
 
-echo "⬆️ Pushing changes to remote..."
+# Step 3: Pull the latest changes
+echo "[3/6] Pulling latest changes for '$develop_branch'..."
+git pull
+
+# Step 4: Switch back to the feature branch
+echo "[4/6] Returning to '$feature_branch'..."
+git checkout "$feature_branch"
+
+# Step 5: Merge the development branch
+echo "[5/6] Merging '$develop_branch' into '$feature_branch'..."
+if ! git merge "$develop_branch" --no-edit; then
+    echo "⚠️ Merge conflict detected! Please resolve conflicts manually and commit."
+    exit 1
+fi
+
+# Step 6: Push the updated feature branch
+echo "[6/6] Pushing changes to remote..."
 git push
 
-echo "✅ Sync complete! Your branch '$feature_branch' is now up-to-date with 'develop'."
+echo "-------------------------------------"
+echo "🎉 Sync complete! Your branch '$feature_branch' is now up-to-date with '$develop_branch'."
