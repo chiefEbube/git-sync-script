@@ -6,11 +6,11 @@ An interactive CLI tool to safely and easily sync your Git branches. It provides
 
 ## Key Features
 
-  * ** Interactive Experience:** No need to remember commands or arguments. The tool guides you with simple prompts.
-  * ** Built-in Safety:** A final confirmation step before any merge or push action prevents costly mistakes.
-  * ** Smart Defaults:** Automatically detects your current branch and suggests sensible defaults to speed up the process.
-  * ** Flexible:** Easily specify any main branch you use, whether it's `develop`, `main`, or `master`.
-  * ** Auto-Commit:** Safely commits any work-in-progress changes on your current branch before starting the sync process.
+  *  Interactive Experience: No need to remember commands or arguments. The tool guides you with simple prompts.
+  *  Built-in Safety: A final confirmation step before any merge or push action prevents costly mistakes.
+  *  Smart Defaults: Automatically detects your current branch and suggests sensible defaults to speed up the process.
+  *  Flexible: Easily specify any main branch you use, whether it's `develop`, `main`, or `master`.
+  *  Auto-Commit: Safely commits any work-in-progress changes on your current branch before starting the sync process.
 
 ## Installation & Usage
 
